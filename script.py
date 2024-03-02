@@ -50,7 +50,7 @@ def vymaz_pevnou_mezeru(text: str) -> str:
         text = text.replace("\xa0", "")
     return text
 
-#TODO ziskej seznam mest
+#ziskej seznam mest
 def ziskej_seznam_mist(soup) -> list:
     """
     Ze stránky zvoleného územního celku vybere seznam mist a url stránek jejich volebních výsledků
@@ -70,7 +70,6 @@ def ziskej_seznam_mist(soup) -> list:
                 continue
     return output
 
-#TODO priprav vystupni data
 def priprav_vystup(url):
     """
     připraví požadované volební výsledky pro daný uzemní celek
