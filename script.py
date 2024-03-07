@@ -60,35 +60,61 @@ def ziskej_seznam_mist(soup) -> list:
     prefix = "https://volby.cz/pls/ps2017nss/"
     output = []
     for elem in soup.find_all("tr"):
-        for i, td in enumerate(elem.find_all("td")):
-            if "overflow_name" in td['class']:
-                mesto = td.text
-                mesto_id = elem.find_all("td")[i - 1].text
-                mesto_rel_link = elem.find_all("td")[i - 1].find('a')['href']
-                mesto_link = prefix + mesto_rel_link
-                output.append((int(mesto_id), mesto, mesto_link))
-                continue
+        td_elem = elem.find_all("td")
+        if not elem.find("td", ({'class': "cislo"})):
+            continue
+        else:
+            misto_id = td_elem[0].text
+            misto_rel_link = td_elem[0].find("a").get("href")
+            misto = td_elem[1].text
+            misto_link = prefix + misto_rel_link
+            output.append((int(misto_id), misto, misto_link))
+    return output
+def ziskej_seznam_statu(soup) -> list:
+    '''
+    Vyber seznamu statu a jejich url pro vysledky ze zahranici
+    '''
+    prefix = "https://volby.cz/pls/ps2017nss/"
+    output = []
+    for elem in soup.find_all("tr"):
+        if not elem.find("td") or not elem.find(headers='s2'):
+            continue
+        country = elem.find(headers='s2').text
+        if not elem.find(rowspan='1', headers='s2'):
+            url_rel = elem.find(headers='s2').a['href']
+        else:
+            url_rel = elem.find(headers='s4').a['href']
+        url = prefix + url_rel
+        country_id = ziskej_country_number(url_rel)
+        output.append((country_id, country, url))
     return output
 
-def priprav_vystup(url):
+def ziskej_country_number(text):
+    cislo = [int(cast.split('=')[1]) for cast in text.split('&') if 'xzeme' in cast][0]
+    return cislo
+
+def priprav_vystup(seznam_odkazu):
     """
-    připraví požadované volební výsledky pro daný uzemní celek
+    připraví požadované volební výsledky pro daný seznam mist
     :param url: string, url odkaz (Př. https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103)
     :return: list slovniků
     """
     output = []
-    for mesto in ziskej_seznam_mist(nacti_html_stranku(url)):
-        print(mesto[1])
+    for misto in seznam_odkazu:
+        print(misto[1])
         soupis = {}
-        soupis["code"] = mesto[0]
-        soupis["location"] = mesto[1]
-        soupis.update(ziskej_volebni_vysledky(nacti_html_stranku(mesto[2])))
+        soupis["code"] = misto[0]
+        soupis["location"] = misto[1]
+        soupis.update(ziskej_volebni_vysledky(nacti_html_stranku(misto[2])))
         output.append(soupis)
     return output
 
 # otestuj vstup
 def test_vstupu():
     url = sys.argv[1]
+    if "ps311" in url or "ps361" in url:
+        print(f" spatny odkaz, jiny sloupec")
+        sys.exit(1)
     if not (requests.get(url).ok):
         print(f"smula, url doesn't exist. Chyba: {requests.get(url).status_code}")
         sys.exit(1)
@@ -100,12 +126,9 @@ def test_vstupu():
 # Vyjimka ze zpracovani
 def vyjimka(url: str):
     if url == "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=11&xnumnuts=6202":
-        print("pro 'Brno - mesto' to data nevybere, jina struktura")
-        sys.exit(1)
-    elif url == "https://volby.cz/pls/ps2017nss/ps36?xjazyk=CZ":
-        print("pro 'Zahranici' to data nevybere, jina struktura")
-        sys.exit(1)
-    return
+        print("pro 'Brno - mesto' zmena url")
+        url = "https://volby.cz/pls/ps2017nss/ps34?xjazyk=CZ&xkraj=11&xobec=582786"
+    return url
 
 # zapis do CSV souboru
 def vytvor_csv_soubor(output, obsah):
@@ -125,10 +148,12 @@ def main():
     python script.py 'https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103' vystup_Prostejov.csv
     """
     test_vstupu()
-    url = sys.argv[1]
-    vyjimka(url)
+    url = vyjimka(sys.argv[1])
     output_file = sys.argv[2]
-    out = priprav_vystup(url)
+    if url == "https://volby.cz/pls/ps2017nss/ps36?xjazyk=CZ":
+        out = priprav_vystup(ziskej_seznam_statu(nacti_html_stranku(url)))
+    else:
+        out = priprav_vystup(ziskej_seznam_mist(nacti_html_stranku(url)))
     vytvor_csv_soubor(output_file, out)
     return print(f"HOTOVO, vysledky jsou v {output_file}")
 
