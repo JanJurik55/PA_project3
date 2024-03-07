@@ -29,7 +29,7 @@ Druhým argumentem je název výstupního CSV souboru, do kterého se výsledky 
 2. argument: vystup_Prostejov.csv
 
 
-    (myvenv) PS c:\muj_adresar> python script.py 'https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103' vystup_Prostejov.csv
+    python script.py 'https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103' vystup_Prostejov.csv
 
 ### Výstupní csv soubor obsahuje:
 
